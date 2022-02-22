@@ -1,16 +1,18 @@
 # This workflow will do a clean install of node dependencies, build the source code and run tests across different versions of node
 # For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
 
-name: Node.js CI and Test
+name: Node.js CI and Publish
 
 on:
   push:
+    branches: [main]
+  pull_request:
+    types: [closed]
     branches:
-      - '*'
-      # - '!main' # If we added this we would get all branches _except_ main
+      - main
 
 jobs:
-  build-and-test:
+  build-test-publish:
 
     runs-on: ubuntu-latest
 
@@ -22,13 +24,12 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    # registry and Scope needed for Publish later
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v1
       with:
         node-version: ${{ matrix.node-version }}
         registry-url: 'https://npm.pkg.github.com'
-        scope: '@School-Of-Tech-Futures-UK'
+        scope: '@infinityworks'
 
     - name: Cache dependencies
       uses: actions/cache@v1
@@ -52,3 +53,16 @@ jobs:
     - name: npm test
       working-directory: ./pokemon-app
       run: npm test
+
+    - name: show package version
+      working-directory: ./pokemon-app
+      run: |
+        PACKAGE_VERSION=$(cat package.json \
+                  | grep '"version":' \
+                  | sed -E 's/.*"([^"]+)".*/\1/')
+        echo "PACKAGE_VERSION=${PACKAGE_VERSION}"
+    - name: npm publish
+      working-directory: ./pokemon-app
+      run: npm publish --access public
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
